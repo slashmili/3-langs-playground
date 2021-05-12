@@ -1,3 +1,4 @@
+use futures::executor::block_on;
 use reqwest::header::USER_AGENT;
 use reqwest::Error;
 use serde::Deserialize;
@@ -8,8 +9,7 @@ struct User {
     id: u32,
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Error> {
+async fn fetch_users() -> Result<Vec<User>, Error> {
     let request_url = format!(
         "https://api.github.com/repos/{owner}/{repo}/stargazers",
         owner = "rust-lang-nursery",
@@ -22,11 +22,21 @@ async fn main() -> Result<(), Error> {
         .header(USER_AGENT, "My Rust Program 1.0")
         .send()
         .await?;
-
     let users: Vec<User> = response.json().await?;
-    let filtered_users = users
-        .iter()
-        .filter(|u| u.login.starts_with("s"));
-    println!("{:?}", filtered_users);
+    return Ok(users);
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Error> {
+    match block_on(fetch_users()) {
+        Ok(users) => {
+            let filtered_users = users.iter().filter(|u| u.login.starts_with("s"));
+            println!("{:?}", filtered_users);
+        }
+        Err(error) => println!("Oops {:?}", error),
+    }
+
+    /*
+     */
     Ok(())
 }
