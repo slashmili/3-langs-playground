@@ -12,10 +12,9 @@ import (
 type User struct {
 	Login string `json:"login"`
 	ID    int    `json:"id"`
-
 }
 type Users struct {
-  Collection []User
+	Collection []User
 }
 
 func main() {
@@ -34,16 +33,11 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	filter_func := func(u User) bool { return !strings.HasPrefix(u.Login, "f") }
-	filtered_users := filter(users, filter_func)
+	filtered_users := make([]User, 0)
+	for _, u := range users {
+		if strings.HasPrefix(u.Login, "s") {
+			filtered_users = append(filtered_users, u)
+		}
+	}
 	fmt.Println(filtered_users)
-}
-
-func filter(ss []User, test func(User) bool) (ret []User) {
-    for _, s := range ss {
-        if test(s) {
-            ret = append(ret, s)
-        }
-    }
-    return
 }
