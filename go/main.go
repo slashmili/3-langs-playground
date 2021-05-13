@@ -12,10 +12,31 @@ import (
 type User struct {
 	Login string `json:"login"`
 	ID    int    `json:"id"`
-
 }
 type Users struct {
-  Collection []User
+	Collection []User
+}
+
+func FetchUser(user_name string, input chan UserResult) {
+	resp, err := http.Get(fmt.Sprintf("https://api.github.com/users/%s", user_name))
+	if err != nil {
+		log.Fatalln(err)
+	}
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	user := User{}
+	err = json.Unmarshal(body, &user)
+	if err != nil {
+		input <- UserResult{Error: err}
+	}
+	input <- UserResult{UserInfo: user}
+}
+
+type UserResult struct {
+	UserInfo User
+	Error    error
 }
 
 func main() {
@@ -34,16 +55,26 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	filter_func := func(u User) bool { return !strings.HasPrefix(u.Login, "f") }
-	filtered_users := filter(users, filter_func)
-	fmt.Println(filtered_users)
-}
 
-func filter(ss []User, test func(User) bool) (ret []User) {
-    for _, s := range ss {
-        if test(s) {
-            ret = append(ret, s)
-        }
-    }
-    return
+	input := make(chan UserResult)
+
+	for _, u := range users {
+		if strings.HasPrefix(u.Login, "s") {
+			go FetchUser(u.Login, input)
+		}
+	}
+
+	filtered_users := make([]User, 0)
+
+	for res := range input {
+		if res.Error == nil {
+			filtered_users = append(filtered_users, res.UserInfo)
+			fmt.Println(res)
+		}
+	}
+	fmt.Println(filtered_users)
+	// Problems:
+	// never reaches this part of the code
+	// I have to use WaitingGroup and create another channel to
+	// receive the message and decrease WaitingGroup counter.
 }
